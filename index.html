@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Fuga & Terrenos — São Bernardo do Campo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0c10;--bg2:#0f1218;--bg3:#151921;--bg4:#1c212c;
+  --text:#c8cdd8;--text2:#8891a4;--text3:#555d72;
+  --green:#00e676;--green2:#00c853;--green-bg:rgba(0,230,118,.08);
+  --yellow:#ffd600;--yellow2:#ffab00;--yellow-bg:rgba(255,214,0,.08);
+  --red:#ff1744;--red2:#d50000;--red-bg:rgba(255,23,68,.08);
+  --accent:#40c4ff;--accent2:#0091ea;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Outfit',sans-serif;
+  --border:1px solid rgba(255,255,255,.06);
+  --glow:0 0 40px rgba(0,230,118,.12);
+}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{font-family:var(--sans);color:var(--text);background:var(--bg);line-height:1.6;overflow-x:hidden}
+::selection{background:var(--green);color:var(--bg)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+
+/* --- NAV --- */
+.nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(10,12,16,.92);backdrop-filter:blur(20px);border-bottom:var(--border);padding:0 2rem;display:flex;align-items:center;height:56px;gap:1.5rem}
+.nav-brand{font-family:var(--mono);font-weight:700;font-size:.85rem;color:var(--green);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;display:flex;align-items:center;gap:.5rem}
+.nav-brand::before{content:'◆';font-size:.6rem;animation:pulse 2s infinite}
+.nav-links{display:flex;gap:.25rem;overflow-x:auto;scrollbar-width:none}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:.78rem;font-weight:500;padding:.4rem .75rem;border-radius:4px;white-space:nowrap;transition:all .2s}
+.nav-links a:hover{color:var(--green);background:var(--green-bg)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* --- HERO --- */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:6rem 2rem 4rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse 600px 400px at 30% 40%,rgba(0,230,118,.06),transparent),
+  radial-gradient(ellipse 500px 500px at 70% 60%,rgba(64,196,255,.04),transparent),
+  repeating-linear-gradient(0deg,transparent,transparent 60px,rgba(255,255,255,.015) 60px,rgba(255,255,255,.015) 61px),
+  repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,255,255,.015) 60px,rgba(255,255,255,.015) 61px);
+  pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:.7rem;color:var(--green);letter-spacing:4px;text-transform:uppercase;margin-bottom:1.5rem;opacity:0;animation:fadeUp .8s .2s forwards}
+.hero h1{font-size:clamp(2rem,6vw,4.5rem);font-weight:900;line-height:1.05;letter-spacing:-2px;color:#fff;max-width:900px;opacity:0;animation:fadeUp .8s .4s forwards}
+.hero h1 span{color:var(--green);position:relative}
+.hero-sub{font-size:clamp(.95rem,2vw,1.2rem);color:var(--text2);max-width:640px;margin-top:1.5rem;font-weight:300;opacity:0;animation:fadeUp .8s .6s forwards}
+.hero-stats{display:flex;gap:3rem;margin-top:3rem;opacity:0;animation:fadeUp .8s .8s forwards}
+.hero-stat{text-align:center}
+.hero-stat-val{font-family:var(--mono);font-size:2rem;font-weight:700;color:var(--green)}
+.hero-stat-label{font-size:.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-top:.25rem}
+.scroll-cue{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.5rem;opacity:0;animation:fadeUp .8s 1s forwards}
+.scroll-cue span{font-size:.65rem;color:var(--text3);letter-spacing:3px;text-transform:uppercase;font-family:var(--mono)}
+.scroll-cue::after{content:'';width:1px;height:40px;background:linear-gradient(var(--green),transparent);animation:scrollLine 2s infinite}
+@keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
+@keyframes scrollLine{0%{opacity:0;transform:scaleY(0);transform-origin:top}50%{opacity:1;transform:scaleY(1)}100%{opacity:0;transform:scaleY(0);transform-origin:bottom}}
+.hero h1,.hero-sub,.hero-tag,.hero-stats,.scroll-cue{transform:translateY(20px)}
+
+/* --- SECTIONS --- */
+section{padding:5rem 2rem;max-width:1320px;margin:0 auto}
+.section-label{font-family:var(--mono);font-size:.65rem;color:var(--green);letter-spacing:4px;text-transform:uppercase;margin-bottom:.75rem}
+.section-title{font-size:clamp(1.5rem,3.5vw,2.5rem);font-weight:800;color:#fff;letter-spacing:-1px;margin-bottom:.5rem}
+.section-desc{color:var(--text2);max-width:600px;margin-bottom:2.5rem;font-weight:300}
+
+/* --- MAP --- */
+.map-wrapper{position:relative;border-radius:12px;overflow:hidden;border:var(--border);box-shadow:var(--glow);margin-bottom:1rem}
+#map{height:560px;width:100%;background:var(--bg2)}
+.map-legend{display:flex;flex-wrap:wrap;gap:1rem;padding:1rem 1.5rem;background:var(--bg2);border-radius:0 0 12px 12px;border-top:var(--border)}
+.map-legend-item{display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:var(--text2)}
+.map-legend-dot{width:12px;height:4px;border-radius:2px}
+
+/* --- ROUTE CARDS --- */
+.routes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:1rem}
+.route-card{background:var(--bg2);border:var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .3s}
+.route-card:hover{border-color:rgba(255,255,255,.12);transform:translateY(-2px)}
+.route-card.active{box-shadow:var(--glow)}
+.route-header{padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.route-header-left{display:flex;align-items:center;gap:1rem}
+.route-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.7rem;font-weight:700;flex-shrink:0}
+.route-icon.low{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,230,118,.2)}
+.route-icon.med{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(255,214,0,.2)}
+.route-icon.high{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,23,68,.2)}
+.route-name{font-weight:700;font-size:.95rem;color:#fff}
+.route-highway{font-family:var(--mono);font-size:.7rem;color:var(--text3);margin-top:.15rem}
+.route-badge{font-family:var(--mono);font-size:.6rem;padding:.3rem .6rem;border-radius:4px;font-weight:600;letter-spacing:1px;white-space:nowrap}
+.route-badge.low{background:var(--green-bg);color:var(--green)}
+.route-badge.med{background:var(--yellow-bg);color:var(--yellow)}
+.route-badge.high{background:var(--red-bg);color:var(--red)}
+.route-body{padding:0 1.5rem 1.5rem;display:none}
+.route-card.open .route-body{display:block}
+.route-card.open .route-chevron{transform:rotate(180deg)}
+.route-chevron{transition:transform .3s;color:var(--text3);font-size:.8rem}
+.route-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1rem}
+.route-meta-item{background:var(--bg3);padding:.6rem .75rem;border-radius:6px}
+.route-meta-label{font-size:.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:var(--mono)}
+.route-meta-val{font-size:.85rem;color:#fff;font-weight:600;margin-top:.15rem}
+.route-list{list-style:none}
+.route-list li{font-size:.82rem;color:var(--text2);padding:.3rem 0;padding-left:1.2rem;position:relative}
+.route-list li::before{content:'';position:absolute;left:0;top:.65rem;width:6px;height:6px;border-radius:50%}
+.route-list.pros li::before{background:var(--green)}
+.route-list.cons li::before{background:var(--red)}
+.route-section-label{font-family:var(--mono);font-size:.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin:1rem 0 .5rem}
+.route-refuge{display:flex;flex-wrap:wrap;gap:.4rem}
+.route-refuge-tag{font-size:.72rem;padding:.25rem .6rem;background:var(--bg4);border-radius:4px;color:var(--accent);border:1px solid rgba(64,196,255,.15);cursor:pointer;transition:all .2s}
+.route-refuge-tag:hover{background:rgba(64,196,255,.1);border-color:var(--accent)}
+
+/* --- RANKING --- */
+.tier-section{margin-bottom:2rem}
+.tier-label{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.7rem;font-weight:700;letter-spacing:2px;padding:.4rem .8rem;border-radius:4px;margin-bottom:1rem}
+.tier-1 .tier-label{background:var(--green-bg);color:var(--green)}
+.tier-2 .tier-label{background:rgba(64,196,255,.1);color:var(--accent)}
+.tier-3 .tier-label{background:rgba(255,214,0,.08);color:var(--yellow)}
+.tier-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem}
+.tier-card{background:var(--bg2);border:var(--border);border-radius:10px;padding:1.25rem 1.5rem;transition:all .3s}
+.tier-card:hover{border-color:rgba(255,255,255,.1);transform:translateY(-2px)}
+.tier-card h4{color:#fff;font-weight:700;font-size:1rem;margin-bottom:.5rem}
+.tier-card-info{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem}
+.tier-card-tag{font-family:var(--mono);font-size:.65rem;padding:.2rem .5rem;background:var(--bg4);border-radius:3px;color:var(--text2)}
+.tier-card p{font-size:.82rem;color:var(--text2);line-height:1.5}
+
+/* --- LISTINGS --- */
+.listings-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:var(--border)}
+.listings-tab{font-size:.78rem;padding:.5rem 1rem;border-radius:6px;background:var(--bg3);border:var(--border);color:var(--text2);cursor:pointer;font-family:var(--sans);font-weight:500;transition:all .2s;white-space:nowrap}
+.listings-tab:hover{color:var(--accent);border-color:rgba(64,196,255,.2)}
+.listings-tab.active{background:rgba(64,196,255,.1);color:var(--accent);border-color:rgba(64,196,255,.3)}
+.listings-controls{display:flex;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center}
+.listings-controls label{font-size:.72rem;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px}
+.listings-controls select{background:var(--bg3);color:var(--text);border:var(--border);padding:.4rem .75rem;border-radius:4px;font-size:.8rem;font-family:var(--sans);cursor:pointer}
+.listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem}
+.listing-card{background:var(--bg2);border:var(--border);border-radius:10px;padding:1.25rem;transition:all .3s}
+.listing-card:hover{border-color:rgba(64,196,255,.2);transform:translateY(-2px)}
+.listing-type{font-family:var(--mono);font-size:.6rem;letter-spacing:1.5px;text-transform:uppercase;padding:.2rem .5rem;border-radius:3px;display:inline-block;margin-bottom:.75rem}
+.listing-type.terreno{background:var(--green-bg);color:var(--green)}
+.listing-type.chacara{background:rgba(64,196,255,.1);color:var(--accent)}
+.listing-type.sitio{background:rgba(255,214,0,.08);color:var(--yellow)}
+.listing-price{font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:.25rem}
+.listing-size{font-family:var(--mono);font-size:.8rem;color:var(--green)}
+.listing-location{font-size:.82rem;color:var(--text2);margin-top:.5rem}
+.listing-features{font-size:.75rem;color:var(--text3);margin-top:.35rem;font-style:italic}
+.listing-perm2{font-family:var(--mono);font-size:.68rem;color:var(--text3);margin-top:.5rem;padding-top:.5rem;border-top:var(--border)}
+.listings-panel{display:none}
+.listings-panel.active{display:block}
+
+/* --- CHECKLIST --- */
+.checklist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem}
+.check-item{background:var(--bg2);border:var(--border);border-radius:10px;padding:1.25rem;display:flex;gap:1rem;align-items:flex-start;transition:all .3s;cursor:pointer}
+.check-item:hover{border-color:rgba(0,230,118,.2)}
+.check-item.checked{opacity:.5}
+.check-item.checked .check-box{background:var(--green);border-color:var(--green)}
+.check-item.checked .check-box::after{content:'✓';color:var(--bg);font-size:.7rem;font-weight:700}
+.check-box{width:22px;height:22px;border-radius:4px;border:2px solid var(--text3);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.check-text{font-size:.88rem;color:var(--text)}
+
+/* --- FOOTER --- */
+footer{text-align:center;padding:3rem 2rem;border-top:var(--border);margin-top:3rem}
+footer p{font-size:.75rem;color:var(--text3);max-width:600px;margin:0 auto;line-height:1.7}
+
+/* --- LEAFLET OVERRIDES --- */
+.leaflet-popup-content-wrapper{background:var(--bg3)!important;color:var(--text)!important;border-radius:8px!important;border:var(--border)!important;box-shadow:0 8px 32px rgba(0,0,0,.5)!important}
+.leaflet-popup-tip{background:var(--bg3)!important}
+.leaflet-popup-content{font-family:var(--sans)!important;font-size:.82rem!important;line-height:1.5!important}
+.leaflet-popup-content b{color:#fff}
+.leaflet-popup-content .pop-price{color:var(--green);font-family:var(--mono);font-weight:600}
+.leaflet-control-zoom a{background:var(--bg3)!important;color:var(--text)!important;border-color:rgba(255,255,255,.06)!important}
+.custom-marker{background:none;border:none}
+
+@media(max-width:768px){
+  .nav{padding:0 1rem;gap:.75rem}
+  .nav-links a{font-size:.7rem;padding:.3rem .5rem}
+  section{padding:3rem 1rem}
+  .hero{min-height:90vh;padding:5rem 1.5rem 3rem}
+  .hero-stats{gap:1.5rem}
+  .routes-grid{grid-template-columns:1fr}
+  .route-meta{grid-template-columns:1fr}
+  .tier-cards{grid-template-columns:1fr}
+  .listings-grid{grid-template-columns:1fr}
+  .checklist-grid{grid-template-columns:1fr}
+  #map{height:400px}
+  .map-legend{flex-wrap:wrap;gap:.5rem}
+}
+</style>
+</head>
+<body>
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">EVAC/SBC</div>
+  <div class="nav-links">
+    <a href="#mapa">Mapa</a>
+    <a href="#rotas">Rotas</a>
+    <a href="#ranking">Ranking</a>
+    <a href="#terrenos">Terrenos</a>
+    <a href="#checklist">Checklist</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-tag">Sistema de Planejamento Tático</div>
+  <h1>Plano de Evacuação &amp; <span>Busca de Terrenos</span></h1>
+  <p class="hero-sub">Análise completa de rotas de fuga a partir de São Bernardo do Campo para o interior do estado de São Paulo, com mapeamento de terrenos disponíveis para aquisição em regiões estratégicas de refúgio.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="hero-stat-val">7</div><div class="hero-stat-label">Rotas Analisadas</div></div>
+    <div class="hero-stat"><div class="hero-stat-val">8</div><div class="hero-stat-label">Regiões Mapeadas</div></div>
+    <div class="hero-stat"><div class="hero-stat-val">70+</div><div class="hero-stat-label">Terrenos</div></div>
+    <div class="hero-stat"><div class="hero-stat-val">3h</div><div class="hero-stat-label">Raio Máximo</div></div>
+  </div>
+  <div class="scroll-cue"><span>Explorar</span></div>
+</header>
+
+<!-- MAP SECTION -->
+<section id="mapa">
+  <div class="section-label">Reconhecimento</div>
+  <h2 class="section-title">Mapa Tático de Rotas</h2>
+  <p class="section-desc">Visão geral das rotas de evacuação e locais de refúgio. Clique nos marcadores para detalhes.</p>
+  <div class="map-wrapper">
+    <div id="map"></div>
+  </div>
+  <div class="map-legend">
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--green)"></div>Risco Baixo — Recomendada</div>
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--yellow)"></div>Risco Médio — Viável</div>
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--red)"></div>Não Recomendada</div>
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--accent)"></div>Cidade de Refúgio</div>
+  </div>
+</section>
+
+<!-- ROUTES SECTION -->
+<section id="rotas">
+  <div class="section-label">Corredores de Evacuação</div>
+  <h2 class="section-title">Rotas de Fuga Analisadas</h2>
+  <p class="section-desc">Cada rota avaliada por infraestrutura, risco de congestionamento, vulnerabilidades e potencial de refúgio no destino.</p>
+  <div class="routes-grid" id="routesGrid"></div>
+</section>
+
+<!-- RANKING SECTION -->
+<section id="ranking">
+  <div class="section-label">Análise Estratégica</div>
+  <h2 class="section-title">Ranking de Regiões de Refúgio</h2>
+  <p class="section-desc">Classificação baseada em altitude, recursos hídricos, potencial agrícola, preço da terra e acessibilidade.</p>
+
+  <div class="tier-section tier-1">
+    <div class="tier-label">TIER 1 — RECOMENDAÇÃO MÁXIMA</div>
+    <div class="tier-cards">
+      <div class="tier-card">
+        <h4>Botucatu / Pardinho / Bofete</h4>
+        <div class="tier-card-info">
+          <span class="tier-card-tag">700-900m alt.</span>
+          <span class="tier-card-tag">Aquífero Guarani</span>
+          <span class="tier-card-tag">Solo fértil</span>
+        </div>
+        <p>Região sobre o Aquífero Guarani com solos de terra roxa. Infraestrutura universitária em Botucatu (UNESP), hospital, comércio. Cidades satélite como Pardinho e Bofete oferecem terrenos acessíveis com excelente qualidade de vida. Faixa de preço: R$ 55 mil a R$ 1,9 milhão.</p>
+      </div>
+      <div class="tier-card">
+        <h4>São Bento do Sapucaí / Gonçalves</h4>
+        <div class="tier-card-info">
+          <span class="tier-card-tag">1.000-1.500m alt.</span>
+          <span class="tier-card-tag">Serra da Mantiqueira</span>
+          <span class="tier-card-tag">Nascentes</span>
+        </div>
+        <p>Altitudes mais elevadas do estado, na Serra da Mantiqueira — verdadeira "caixa d'água" do sudeste brasileiro. Clima ameno, agricultura orgânica de altitude, baixa densidade populacional. Faixa: R$ 250 mil a R$ 1,6 milhão.</p>
+      </div>
+      <div class="tier-card">
+        <h4>Cunha</h4>
+        <div class="tier-card-info">
+          <span class="tier-card-tag">900-1.100m alt.</span>
+          <span class="tier-card-tag">Remota</span>
+          <span class="tier-card-tag">Melhor custo/ha</span>
+        </div>
+        <p>Melhor relação custo-benefício por hectare. Comunidade artesanal e autossuficiente, abundância de água, Mata Atlântica preservada. Terrenos grandes a partir de R$ 150 mil (2 ha). Faixa: R$ 150 mil a R$ 1,2 milhão.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tier-section tier-2">
+    <div class="tier-label">TIER 2 — EXCELENTE</div>
+    <div class="tier-cards">
+      <div class="tier-card">
+        <h4>Brotas / Águas de São Pedro</h4>
+        <div class="tier-card-info">
+          <span class="tier-card-tag">550-700m alt.</span>
+          <span class="tier-card-tag">Nascentes minerais</span>
+          <span class="tier-card-tag">Ecoturismo</span>
+        </div>
+        <p>Região famosa pelas nascentes de água mineral e ecoturismo de aventura. Represa do Broa oferece opções de lazer e reserva hídrica. Faixa: R$ 80 mil a R$ 1,2 milhão.</p>
+      </div>
+      <div class="tier-card">
+        <h4>Capão Bonito / São Miguel Arcanjo</h4>
+        <div class="tier-card-info">
+          <span class="tier-card-tag">650-750m alt.</span>
+          <span class="tier-card-tag">Terra barata</span>
+          <span class="tier-card-tag">Mata Atlântica</span>
+        </div>
+        <p>Uma das regiões mais acessíveis em preço dentro do raio de 3h. Remanescentes de Mata Atlântica, rios e nascentes abundantes, agricultura diversificada. Faixa: R$ 70 mil a R$ 1,5 milhão.</p>
+      </div>
+      <div class="tier-card">
+        <h4>Santo Antônio do Pinhal</h4>
+        <div class="tier-card-info">
+          <span class="tier-card-tag">1.000-1.200m alt.</span>
+          <span class="tier-card-tag">Montanha</span>
+          <span class="tier-card-tag">Próx. Campos do Jordão</span>
+        </div>
+        <p>Localização privilegiada na Serra da Mantiqueira, próxima a Campos do Jordão mas com preços mais acessíveis. Vista para a Pedra do Baú, clima de montanha. Faixa: R$ 200 mil a R$ 2,1 milhões.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tier-section tier-3">
+    <div class="tier-label">TIER 3 — BOM COM RESSALVAS</div>
+    <div class="tier-cards">
+      <div class="tier-card">
+        <h4>Piedade / Tapiraí</h4>
+        <div class="tier-card-info">
+          <span class="tier-card-tag">700-900m alt.</span>
+          <span class="tier-card-tag">Mais próxima de SBC</span>
+          <span class="tier-card-tag">Polo agrícola</span>
+        </div>
+        <p>Opção mais próxima de SBC com caráter rural consolidado. Piedade é polo de horticultura orgânica. Boa altitude e água, mas proximidade com a capital pode ser desvantagem em cenário regional. Faixa: R$ 85 mil a R$ 1,65 milhão.</p>
+      </div>
+      <div class="tier-card">
+        <h4>Avaré / Cerqueira César</h4>
+        <div class="tier-card-info">
+          <span class="tier-card-tag">~650m alt.</span>
+          <span class="tier-card-tag">Represa Jurumirim</span>
+          <span class="tier-card-tag">Agropecuária</span>
+        </div>
+        <p>Grande reservatório de água doce (Represa de Jurumirim), região agropecuária consolidada com terras acessíveis. Ligeiramente além do raio de 3h em condições normais, mas viável como plano B.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LISTINGS SECTION -->
+<section id="terrenos">
+  <div class="section-label">Imóveis Disponíveis</div>
+  <h2 class="section-title">Terrenos para Compra</h2>
+  <p class="section-desc">Levantamento de terrenos, chácaras e sítios disponíveis nas regiões estratégicas mapeadas.</p>
+  <div class="listings-tabs" id="listingsTabs"></div>
+  <div class="listings-controls">
+    <label>Ordenar por:</label>
+    <select id="sortSelect">
+      <option value="price-asc">Menor Preço</option>
+      <option value="price-desc">Maior Preço</option>
+      <option value="size-desc">Maior Área</option>
+      <option value="size-asc">Menor Área</option>
+      <option value="perm2-asc">Menor R$/m²</option>
+    </select>
+    <label>Tipo:</label>
+    <select id="typeFilter">
+      <option value="all">Todos</option>
+      <option value="Terreno">Terreno</option>
+      <option value="Chácara">Chácara</option>
+      <option value="Sítio">Sítio</option>
+    </select>
+  </div>
+  <div id="listingsPanels"></div>
+</section>
+
+<!-- CHECKLIST SECTION -->
+<section id="checklist">
+  <div class="section-label">Preparação</div>
+  <h2 class="section-title">Checklist de Emergência</h2>
+  <p class="section-desc">Ações essenciais para preparação prévia. Clique para marcar itens concluídos.</p>
+  <div class="checklist-grid">
+    <div class="check-item" onclick="this.classList.toggle('checked')"><div class="check-box"></div><div class="check-text">Manter veículo com tanque sempre acima da metade</div></div>
+    <div class="check-item" onclick="this.classList.toggle('checked')"><div class="check-box"></div><div class="check-text">Mapear rotas secundárias (estradas vicinais) como alternativa às rodovias</div></div>
+    <div class="check-item" onclick="this.classList.toggle('checked')"><div class="check-box"></div><div class="check-text">Pré-posicionar suprimentos na propriedade de refúgio (água, alimentos não perecíveis, medicamentos)</div></div>
+    <div class="check-item" onclick="this.classList.toggle('checked')"><div class="check-box"></div><div class="check-text">Conhecer todos os acessos ao Rodoanel Mário Covas (SP-021) a partir de SBC</div></div>
+    <div class="check-item" onclick="this.classList.toggle('checked')"><div class="check-box"></div><div class="check-text">Janela de evacuação estimada: 2-6 horas antes do congestionamento total</div></div>
+    <div class="check-item" onclick="this.classList.toggle('checked')"><div class="check-box"></div><div class="check-text">Documentos importantes em pasta de fácil acesso (originais e cópias digitais)</div></div>
+    <div class="check-item" onclick="this.classList.toggle('checked')"><div class="check-box"></div><div class="check-text">Kit de emergência no veículo: água, alimentos, lanterna, pilhas, rádio AM/FM, cobertor</div></div>
+    <div class="check-item" onclick="this.classList.toggle('checked')"><div class="check-box"></div><div class="check-text">Comunicação: rádio amador ou HT (handy-talkie) como backup em caso de queda de celular</div></div>
+    <div class="check-item" onclick="this.classList.toggle('checked')"><div class="check-box"></div><div class="check-text">Ferramentas básicas: corda, faca, fósforos, lona, kit de primeiros socorros</div></div>
+    <div class="check-item" onclick="this.classList.toggle('checked')"><div class="check-box"></div><div class="check-text">Plano familiar: ponto de encontro e protocolo definidos com todos os membros</div></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>Os dados apresentados nesta página são aproximados e destinam-se exclusivamente a fins de planejamento. Preços, disponibilidade de terrenos e condições das rodovias podem variar. Consulte fontes oficiais e corretores locais antes de tomar decisões. Dados coletados em maio de 2025.</p>
+</footer>
+<script>
+<script>
+// ============ DATA ============
+const ROUTES = [
+  {id:'castello',name:'Castello Branco',hw:'SP-280',risk:'low',dir:'Oeste',dist:'230 km até Botucatu',time:'2h30–3h',
+   cities:'Sorocaba, Itu, Tatuí, Botucatu',
+   pros:['Boa infraestrutura rodoviária','Menos tráfego que Bandeirantes/Anhanguera','Leva à região sobre o Aquífero Guarani','Cidades com boa infraestrutura ao longo'],
+   cons:['Via única sem rodovia paralela (sem redundância)','Trecho inicial (Barueri/Osasco) congestionado'],
+   refuge:['Botucatu','Pardinho','Bofete','Avaré'],
+   color:'#00e676',
+   coords:[[-23.69,-46.56],[-23.65,-46.68],[-23.60,-46.78],[-23.55,-46.90],[-23.50,-47.06],[-23.48,-47.27],[-23.46,-47.46],[-23.44,-47.60],[-23.20,-47.73],[-22.89,-48.44]]
+  },
+  {id:'bandeirantes',name:'Bandeirantes / Anhanguera',hw:'SP-348 / SP-330',risk:'med',dir:'Noroeste',dist:'210-235 km até Brotas',time:'2h30–3h',
+   cities:'Jundiaí, Campinas, Limeira, Piracicaba, Rio Claro',
+   pros:['Melhor infraestrutura rodoviária do Brasil','Duas rodovias paralelas (redundância)','Região agrícola rica ao destino'],
+   cons:['Volume de tráfego extremo — rota mais óbvia','Campinas (3M+ hab.) não é remota o suficiente'],
+   refuge:['São Pedro','Brotas','Águas de São Pedro','São Carlos'],
+   color:'#ffd600',
+   coords:[[-23.69,-46.56],[-23.60,-46.68],[-23.52,-46.78],[-23.45,-46.87],[-23.35,-46.95],[-23.19,-46.88],[-22.91,-47.06],[-22.73,-47.33],[-22.64,-47.65],[-22.39,-47.90],[-22.29,-48.12]]
+  },
+  {id:'fernao',name:'Fernão Dias',hw:'BR-381',risk:'low',dir:'Norte-Nordeste',dist:'180-200 km até São Bento',time:'2h30–3h',
+   cities:'Atibaia, Bragança Paulista, Piracaia',
+   pros:['Acesso direto à Serra da Mantiqueira (1.000-1.500m)','Região com melhor disponibilidade hídrica do sudeste','Clima ameno, resiliência climática'],
+   cons:['Rodovia perigosa (curvas, neblina, caminhões)','Via única sem alternativas se bloqueada'],
+   refuge:['São Bento do Sapucaí','Gonçalves','Monte Verde'],
+   color:'#00e676',
+   coords:[[-23.69,-46.56],[-23.55,-46.58],[-23.45,-46.60],[-23.35,-46.58],[-23.18,-46.55],[-23.10,-46.53],[-22.95,-46.48],[-22.82,-46.42],[-22.69,-45.73]]
+  },
+  {id:'senna',name:'Ayrton Senna / Carvalho Pinto',hw:'SP-070',risk:'low',dir:'Leste-Nordeste',dist:'200-230 km até Cunha',time:'2h30–3h',
+   cities:'São José dos Campos, Taubaté, Pindamonhangaba',
+   pros:['Rodovias duplicadas (redundância)','Acesso à Serra da Mantiqueira pelo Vale do Paraíba','Cunha oferece isolamento e autossuficiência'],
+   cons:['SJC é cidade grande (~730 mil hab.)','Vale do Paraíba industrializado'],
+   refuge:['Santo Antônio do Pinhal','Campos do Jordão','Cunha'],
+   color:'#00e676',
+   coords:[[-23.69,-46.56],[-23.55,-46.45],[-23.45,-46.32],[-23.40,-46.20],[-23.35,-46.10],[-23.22,-45.90],[-23.18,-45.53],[-23.03,-45.27],[-23.07,-44.96]]
+  },
+  {id:'raposo',name:'Raposo Tavares',hw:'SP-270',risk:'med',dir:'Oeste-Sudoeste',dist:'200-230 km até Capão Bonito',time:'2h30–3h',
+   cities:'Cotia, São Roque, Sorocaba, Itapetininga',
+   pros:['Menor volume de tráfego que outras vias','Acesso rápido a áreas genuinamente rurais'],
+   cons:['Qualidade inferior às demais rodovias','Gargalo severo no trecho Cotia/Raposo'],
+   refuge:['Capão Bonito','São Miguel Arcanjo','Guapiara'],
+   color:'#ffd600',
+   coords:[[-23.69,-46.56],[-23.62,-46.72],[-23.56,-46.84],[-23.52,-47.00],[-23.50,-47.15],[-23.53,-47.43],[-23.59,-47.62],[-23.72,-48.00],[-24.00,-48.35]]
+  },
+  {id:'regis',name:'Régis Bittencourt',hw:'BR-116',risk:'med',dir:'Sul-Sudoeste',dist:'70-150 km até Piedade',time:'1h–2h',
+   cities:'Juquitiba, São Lourenço da Serra',
+   pros:['Mais rápida para atingir área rural (1h até Juquitiba)','Piedade é polo agrícola consolidado (horticultura)'],
+   cons:['Rodovia historicamente perigosa ("Rodovia da Morte")','Deslizamentos frequentes na Serra do Cafezal'],
+   refuge:['Piedade','Tapiraí','Juquitiba'],
+   color:'#ffd600',
+   coords:[[-23.69,-46.56],[-23.75,-46.62],[-23.80,-46.70],[-23.85,-46.78],[-23.88,-46.85],[-23.78,-47.10],[-23.72,-47.28]]
+  },
+  {id:'anchieta',name:'Anchieta / Imigrantes',hw:'SP-150 / SP-160',risk:'high',dir:'Sudeste (litoral)',dist:'55 km até Santos',time:'~1h',
+   cities:'Cubatão, Santos, Guarujá',
+   pros:['Acesso direto e rápido a partir de SBC'],
+   cons:['Direção ao litoral — risco de tsunami, inundações','Serra do Mar vulnerável a deslizamentos','Santos é baixa altitude, densamente povoada','Não oferece refúgio no interior'],
+   refuge:[],
+   color:'#ff1744',
+   coords:[[-23.69,-46.56],[-23.76,-46.48],[-23.82,-46.42],[-23.87,-46.38],[-23.95,-46.35],[-23.96,-46.33]]
+  }
+];
+
+const LISTINGS_DATA = {
+  'Botucatu':[
+    {size:200,price:65000,loc:'Altos da Serra',type:'Terreno',feat:'Lote urbano'},
+    {size:270,price:100000,loc:'Rubião Jr.',type:'Terreno',feat:'Financiamento 100%'},
+    {size:250,price:175000,loc:'Res. Ouro Verde',type:'Terreno',feat:'Urbano'},
+    {size:500,price:120000,loc:'Park Res. Convívio',type:'Terreno',feat:'Loteamento'},
+    {size:42000,price:1890000,loc:'Querência do Rio Bonito',type:'Terreno',feat:'Área rural — 4,2 ha'},
+    {size:1500,price:380000,loc:'Vitoriana',type:'Chácara',feat:'4 dormitórios, 3 garagens'},
+    {size:3000,price:1300000,loc:'Zona Rural',type:'Chácara',feat:'6 dorm, piscina, pomar — 465m² constr.'},
+    {size:20666,price:750000,loc:'Zona Rural',type:'Chácara',feat:'Rural — ~2 ha'}
+  ],
+  'Pardinho':[
+    {size:450,price:55000,loc:'Ninho Verde',type:'Terreno',feat:'Condomínio'},
+    {size:530,price:70000,loc:'Centro',type:'Terreno',feat:'—'},
+    {size:420,price:80000,loc:'Centro',type:'Terreno',feat:'—'},
+    {size:449,price:110000,loc:'Ninho Verde',type:'Terreno',feat:'Condomínio'},
+    {size:2306,price:250000,loc:'Serra Italiana',type:'Terreno',feat:'—'},
+    {size:6232,price:220000,loc:'Campos Elíseos',type:'Terreno',feat:'—'},
+    {size:5000,price:530000,loc:'Campos Elíseos',type:'Chácara',feat:'3 quartos'},
+    {size:5000,price:700000,loc:'Campos Elíseos',type:'Chácara',feat:'2 casas, pomar, piscina'},
+    {size:20000,price:1000000,loc:'Campos Elíseos',type:'Chácara',feat:'Rural — 2 ha'}
+  ],
+  'São Bento do Sapucaí':[
+    {size:250,price:370000,loc:'Centro',type:'Terreno',feat:'Urbano'},
+    {size:1000,price:250000,loc:'Monjolinho',type:'Terreno',feat:'—'},
+    {size:5000,price:380000,loc:'Baú',type:'Terreno',feat:'—'},
+    {size:5000,price:550000,loc:'Village Serrano',type:'Terreno',feat:'Vista para Pedra do Baú'},
+    {size:20043,price:900000,loc:'Baú',type:'Terreno',feat:'Vista Pedra do Baú — 2 ha'},
+    {size:36000,price:550000,loc:'Centro',type:'Terreno',feat:'3,6 ha'},
+    {size:108900,price:1500000,loc:'Paiol Grande',type:'Terreno',feat:'~11 ha'},
+    {size:14071,price:550000,loc:'Sítio',type:'Chácara',feat:'2 dormitórios'},
+    {size:30000,price:1600000,loc:'Paiol Grande',type:'Chácara',feat:'2 quartos — 3 ha'}
+  ],
+  'Brotas':[
+    {size:300,price:80000,loc:'Lagoa Dourada',type:'Terreno',feat:'—'},
+    {size:522,price:86000,loc:'Lagoa Dourada',type:'Terreno',feat:'—'},
+    {size:310,price:135000,loc:'Centro',type:'Terreno',feat:'—'},
+    {size:360,price:220000,loc:'Jd. Paraíso',type:'Terreno',feat:'Plano, pronto p/ construir'},
+    {size:1003,price:371000,loc:'Broa',type:'Terreno',feat:'Próximo à represa'},
+    {size:1006,price:318000,loc:'Broa Eco Village',type:'Terreno',feat:'Condomínio fechado'},
+    {size:1330,price:750000,loc:'Santa Cruz',type:'Chácara',feat:'2 quartos, 1 suíte'},
+    {size:5000,price:1200000,loc:'Chácaras das Mansões',type:'Chácara',feat:'3 quartos, 8 vagas'}
+  ],
+  'Cunha':[
+    {size:20000,price:150000,loc:'Cedro',type:'Terreno',feat:'2 ha — Melhor custo'},
+    {size:30000,price:190000,loc:'Cedro',type:'Terreno',feat:'3 ha'},
+    {size:31000,price:420000,loc:'Centro',type:'Terreno',feat:'3,1 ha'},
+    {size:20000,price:480000,loc:'Centro',type:'Terreno',feat:'2 ha'},
+    {size:20000,price:800000,loc:'Zona Rural',type:'Terreno',feat:'Próx. Pedra da Marcela'},
+    {size:133100,price:950000,loc:'Zona Rural',type:'Terreno',feat:'13 ha'},
+    {size:266200,price:1150000,loc:'Centro',type:'Terreno',feat:'27 ha'},
+    {size:290400,price:1188000,loc:'Zona Rural',type:'Terreno',feat:'29 ha'}
+  ],
+  'Capão Bonito':[
+    {size:2000,price:140000,loc:'Querência do Turvo',type:'Terreno',feat:'—'},
+    {size:48400,price:350000,loc:'Área Rural',type:'Terreno',feat:'4,8 ha'},
+    {size:2000,price:200000,loc:'Querência do Turvo',type:'Chácara',feat:'3 quartos'},
+    {size:6548,price:450000,loc:'Querência do Turvo',type:'Chácara',feat:'4 quartos, 2 banheiros'},
+    {size:6000,price:450000,loc:'Área Rural',type:'Chácara',feat:'4 quartos'},
+    {size:145200,price:550000,loc:'Área Rural',type:'Chácara',feat:'14,5 ha'},
+    {size:20000,price:1500000,loc:'Querência do Turvo',type:'Chácara',feat:'6 quartos, 5 banheiros'}
+  ],
+  'Piedade':[
+    {size:160,price:85000,loc:'Centro',type:'Terreno',feat:'Urbano'},
+    {size:1000,price:94000,loc:'Ortizes',type:'Terreno',feat:'—'},
+    {size:1000,price:100000,loc:'Centro',type:'Terreno',feat:'—'},
+    {size:1000,price:100000,loc:'Zona Rural',type:'Terreno',feat:'—'},
+    {size:6386,price:160000,loc:'Centro',type:'Terreno',feat:'—'},
+    {size:1013,price:99000,loc:'Horizonte Verde',type:'Terreno',feat:'Pronto p/ chácara'},
+    {size:3500,price:600000,loc:'Piraporinha',type:'Chácara',feat:'3 dorm, 1 suíte, 6 vagas'},
+    {size:36400,price:550000,loc:'Zona Rural',type:'Sítio',feat:'6 dormitórios — 3,6 ha'},
+    {size:74000,price:1650000,loc:'Centro',type:'Sítio',feat:'4 dormitórios — 7,4 ha'}
+  ],
+  'Santo Antônio do Pinhal':[
+    {size:691,price:200000,loc:'Centro',type:'Terreno',feat:'—'},
+    {size:2800,price:200000,loc:'Rio Preto',type:'Terreno',feat:'—'},
+    {size:1000,price:350000,loc:'Centro',type:'Terreno',feat:'—'},
+    {size:20000,price:440000,loc:'Zona Rural',type:'Terreno',feat:'2 ha'},
+    {size:20000,price:600000,loc:'Rio Preto',type:'Terreno',feat:'2 ha'},
+    {size:30000,price:780000,loc:'Centro',type:'Terreno',feat:'3 ha'},
+    {size:86000,price:1200000,loc:'Centro',type:'Terreno',feat:'8,6 ha'},
+    {size:6000,price:500000,loc:'Rio Preto',type:'Chácara',feat:'2 quartos'},
+    {size:11600,price:800000,loc:'Zona Rural',type:'Chácara',feat:'Potencial para chalés'},
+    {size:13000,price:2100000,loc:'Centro',type:'Chácara',feat:'4 quartos, 1 suíte, 8 vagas'}
+  ]
+};
+
+const CITY_MARKERS = [
+  {name:'São Bernardo do Campo',lat:-23.6914,lng:-46.5646,type:'origin',info:'PONTO DE PARTIDA'},
+  {name:'Botucatu',lat:-22.8859,lng:-48.4450,type:'refuge',route:'castello',info:'700-900m · Aquífero Guarani · UNESP'},
+  {name:'Pardinho',lat:-23.0436,lng:-48.3664,type:'refuge',route:'castello',info:'700m · Ninho Verde · Terras acessíveis'},
+  {name:'Sorocaba',lat:-23.5015,lng:-47.4526,type:'waypoint',route:'castello',info:'Cidade de passagem — 100 km de SBC'},
+  {name:'Campinas',lat:-22.9099,lng:-47.0626,type:'waypoint',route:'bandeirantes',info:'Cidade de passagem — 120 km de SBC'},
+  {name:'Brotas',lat:-22.2850,lng:-48.1280,type:'refuge',route:'bandeirantes',info:'550-700m · Nascentes minerais · Represa do Broa'},
+  {name:'São Pedro',lat:-22.5494,lng:-47.9057,type:'refuge',route:'bandeirantes',info:'550m · Rio Piracicaba · Agricultura'},
+  {name:'São Bento do Sapucaí',lat:-22.6870,lng:-45.7310,type:'refuge',route:'fernao',info:'1.000-1.500m · Serra da Mantiqueira · Pedra do Baú'},
+  {name:'Atibaia',lat:-23.1171,lng:-46.5564,type:'waypoint',route:'fernao',info:'Cidade de passagem — 90 km de SBC'},
+  {name:'Cunha',lat:-23.0746,lng:-44.9576,type:'refuge',route:'senna',info:'900-1.100m · Remota · Melhor custo/ha'},
+  {name:'Santo Antônio do Pinhal',lat:-22.8270,lng:-45.6622,type:'refuge',route:'senna',info:'1.000-1.200m · Montanha · Próx. Campos do Jordão'},
+  {name:'Campos do Jordão',lat:-22.7396,lng:-45.5914,type:'refuge',route:'senna',info:'1.600-1.700m · Cidade mais alta do Brasil'},
+  {name:'São José dos Campos',lat:-23.1896,lng:-45.8840,type:'waypoint',route:'senna',info:'Cidade de passagem — 120 km de SBC'},
+  {name:'Capão Bonito',lat:-24.0059,lng:-48.3497,type:'refuge',route:'raposo',info:'650-750m · Terra barata · Mata Atlântica'},
+  {name:'Itapetininga',lat:-23.5916,lng:-48.0530,type:'waypoint',route:'raposo',info:'Cidade de passagem — 170 km de SBC'},
+  {name:'Piedade',lat:-23.7130,lng:-47.4270,type:'refuge',route:'regis',info:'700-900m · Polo agrícola · Próxima de SBC'},
+  {name:'Juquitiba',lat:-23.9330,lng:-47.0680,type:'waypoint',route:'regis',info:'680m · 70 km de SBC · Já rural'},
+  {name:'Santos',lat:-23.9608,lng:-46.3340,type:'avoid',route:'anchieta',info:'NÃO RECOMENDADO — Litoral baixo'}
+];
+
+// ============ FORMAT HELPERS ============
+function fmtPrice(v){return 'R$ '+v.toLocaleString('pt-BR')}
+function fmtSize(v){
+  if(v>=10000) return (v/10000).toFixed(v%10000?1:0).replace('.',',')+' ha';
+  return v.toLocaleString('pt-BR')+' m²';
+}
+function riskLabel(r){return r==='low'?'RISCO BAIXO':r==='med'?'RISCO MÉDIO':'NÃO RECOMENDADA'}
+function riskClass(r){return r==='low'?'low':r==='med'?'med':'high'}
+
+// ============ RENDER ROUTES ============
+const routesGrid = document.getElementById('routesGrid');
+ROUTES.forEach((r,i) => {
+  const refugeTags = r.refuge.map(c=>`<span class="route-refuge-tag" data-city="${c}">${c}</span>`).join('');
+  routesGrid.innerHTML += `
+  <div class="route-card" data-route="${r.id}" onclick="toggleRoute(this,'${r.id}')">
+    <div class="route-header">
+      <div class="route-header-left">
+        <div class="route-icon ${riskClass(r.risk)}">${String(i+1).padStart(2,'0')}</div>
+        <div><div class="route-name">${r.name}</div><div class="route-highway">${r.hw}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <span class="route-badge ${riskClass(r.risk)}">${riskLabel(r.risk)}</span>
+        <span class="route-chevron">▼</span>
+      </div>
+    </div>
+    <div class="route-body">
+      <div class="route-meta">
+        <div class="route-meta-item"><div class="route-meta-label">Direção</div><div class="route-meta-val">${r.dir}</div></div>
+        <div class="route-meta-item"><div class="route-meta-label">Distância</div><div class="route-meta-val">${r.dist}</div></div>
+        <div class="route-meta-item"><div class="route-meta-label">Tempo</div><div class="route-meta-val">${r.time}</div></div>
+      </div>
+      <div class="route-section-label">Cidades no Trajeto</div>
+      <p style="font-size:.85rem;color:var(--text2);margin-bottom:.5rem">${r.cities}</p>
+      <div class="route-section-label">Vantagens</div>
+      <ul class="route-list pros">${r.pros.map(p=>`<li>${p}</li>`).join('')}</ul>
+      <div class="route-section-label">Desvantagens</div>
+      <ul class="route-list cons">${r.cons.map(c=>`<li>${c}</li>`).join('')}</ul>
+      ${r.refuge.length?`<div class="route-section-label">Cidades de Refúgio</div><div class="route-refuge">${refugeTags}</div>`:''}
+    </div>
+  </div>`;
+});
+
+// ============ RENDER LISTINGS ============
+const tabsEl = document.getElementById('listingsTabs');
+const panelsEl = document.getElementById('listingsPanels');
+const regions = Object.keys(LISTINGS_DATA);
+let activeRegion = regions[0];
+
+regions.forEach((r,i) => {
+  tabsEl.innerHTML += `<button class="listings-tab${i===0?' active':''}" data-region="${r}">${r}</button>`;
+  panelsEl.innerHTML += `<div class="listings-panel${i===0?' active':''}" data-region="${r}"><div class="listings-grid"></div></div>`;
+});
+
+function renderListings(region, sortBy='price-asc', typeF='all'){
+  let items = [...LISTINGS_DATA[region]];
+  if(typeF!=='all') items = items.filter(x=>x.type===typeF);
+  const [key,dir] = sortBy.split('-');
+  const sortKey = key==='perm2' ? (a=>a.price/a.size) : (a=>a[key]);
+  items.sort((a,b)=> dir==='asc'? sortKey(a)-sortKey(b) : sortKey(b)-sortKey(a));
+  const grid = panelsEl.querySelector(`.listings-panel[data-region="${region}"] .listings-grid`);
+  grid.innerHTML = items.map(it=>{
+    const tc = it.type==='Terreno'?'terreno':it.type==='Chácara'?'chacara':'sitio';
+    const perm2 = (it.price/it.size).toFixed(2);
+    return `<div class="listing-card">
+      <span class="listing-type ${tc}">${it.type}</span>
+      <div class="listing-price">${fmtPrice(it.price)}</div>
+      <div class="listing-size">${fmtSize(it.size)}</div>
+      <div class="listing-location">${it.loc} — ${region}</div>
+      ${it.feat&&it.feat!=='—'?`<div class="listing-features">${it.feat}</div>`:''}
+      <div class="listing-perm2">R$ ${parseFloat(perm2).toLocaleString('pt-BR',{minimumFractionDigits:2})} / m²</div>
+    </div>`;
+  }).join('');
+}
+
+regions.forEach(r=>renderListings(r));
+
+tabsEl.addEventListener('click',e=>{
+  const btn=e.target.closest('.listings-tab'); if(!btn) return;
+  activeRegion = btn.dataset.region;
+  tabsEl.querySelectorAll('.listings-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  panelsEl.querySelectorAll('.listings-panel').forEach(p=>p.classList.remove('active'));
+  panelsEl.querySelector(`.listings-panel[data-region="${activeRegion}"]`).classList.add('active');
+  renderListings(activeRegion, document.getElementById('sortSelect').value, document.getElementById('typeFilter').value);
+});
+
+document.getElementById('sortSelect').addEventListener('change',e=>{
+  renderListings(activeRegion, e.target.value, document.getElementById('typeFilter').value);
+});
+document.getElementById('typeFilter').addEventListener('change',e=>{
+  renderListings(activeRegion, document.getElementById('sortSelect').value, e.target.value);
+});
+
+// ============ MAP ============
+const map = L.map('map',{zoomControl:true,scrollWheelZoom:true}).setView([-23.2,-46.8],8);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:18
+}).addTo(map);
+
+const routeLines = {};
+ROUTES.forEach(r=>{
+  const line = L.polyline(r.coords,{color:r.color,weight:3,opacity:.7,dashArray:r.risk==='high'?'8,8':null}).addTo(map);
+  routeLines[r.id] = line;
+  line.bindPopup(`<b>${r.name}</b><br>${r.hw} — ${r.dist}<br>${riskLabel(r.risk)}`);
+});
+
+function markerIcon(type){
+  const colors = {origin:'#40c4ff',refuge:'#00e676',waypoint:'#ffd600',avoid:'#ff1744'};
+  const sizes = {origin:14,refuge:10,waypoint:7,avoid:10};
+  const c = colors[type]||'#fff'; const s = sizes[type]||8;
+  return L.divIcon({
+    className:'custom-marker',
+    html:`<div style="width:${s}px;height:${s}px;border-radius:50%;background:${c};border:2px solid rgba(255,255,255,.8);box-shadow:0 0 10px ${c}80;"></div>`,
+    iconSize:[s,s],iconAnchor:[s/2,s/2]
+  });
+}
+
+CITY_MARKERS.forEach(c=>{
+  const m = L.marker([c.lat,c.lng],{icon:markerIcon(c.type)}).addTo(map);
+  const popContent = `<b>${c.name}</b><br>${c.info}${c.type==='refuge'?`<br><br><a href="#terrenos" style="color:var(--green);cursor:pointer" onclick="selectRegionTab('${c.name}')">Ver terrenos →</a>`:''}`;
+  m.bindPopup(popContent);
+});
+
+// ============ INTERACTIVITY ============
+function toggleRoute(el, routeId){
+  const wasOpen = el.classList.contains('open');
+  document.querySelectorAll('.route-card').forEach(c=>{c.classList.remove('open');c.classList.remove('active')});
+  if(!wasOpen){
+    el.classList.add('open');
+    el.classList.add('active');
+    Object.values(routeLines).forEach(l=>l.setStyle({opacity:.25,weight:2}));
+    if(routeLines[routeId]){
+      routeLines[routeId].setStyle({opacity:1,weight:5});
+      map.fitBounds(routeLines[routeId].getBounds(),{padding:[50,50]});
+    }
+  } else {
+    Object.values(routeLines).forEach(l=>l.setStyle({opacity:.7,weight:3}));
+    map.setView([-23.2,-46.8],8);
+  }
+}
+
+function selectRegionTab(cityName){
+  const regionKeys = Object.keys(LISTINGS_DATA);
+  let match = regionKeys.find(r=>r===cityName);
+  if(!match) match = regionKeys.find(r=>cityName.includes(r)||r.includes(cityName));
+  if(match){
+    tabsEl.querySelectorAll('.listings-tab').forEach(b=>{
+      b.classList.toggle('active',b.dataset.region===match);
+    });
+    panelsEl.querySelectorAll('.listings-panel').forEach(p=>{
+      p.classList.toggle('active',p.dataset.region===match);
+    });
+    activeRegion = match;
+    renderListings(match, document.getElementById('sortSelect').value, document.getElementById('typeFilter').value);
+    document.getElementById('terrenos').scrollIntoView({behavior:'smooth'});
+  }
+}
+
+// Refuge tag clicks
+document.addEventListener('click',e=>{
+  const tag = e.target.closest('.route-refuge-tag');
+  if(tag){
+    e.stopPropagation();
+    selectRegionTab(tag.dataset.city);
+  }
+});
+
+// Nav active state
+const sections = document.querySelectorAll('section');
+const navLinks = document.querySelectorAll('.nav-links a');
+const obs = new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){
+      navLinks.forEach(l=>l.style.color=l.getAttribute('href')==='#'+en.target.id?'var(--green)':'');
+    }
+  });
+},{threshold:.3});
+sections.forEach(s=>obs.observe(s));
+</script>
+</script>
+</body>
+</html>
